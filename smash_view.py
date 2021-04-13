@@ -95,6 +95,11 @@ class Controller:
         gcapi_read.argtypes = [ctypes.POINTER(GCAPI_Report)]
         setattr(self, "gcapi_read", gcapi_read)
 
+        gcapi_write = self.dll.gcapi_Write
+        gcapi_write.restype = ctypes.c_uint8
+        gcapi_write.argtypes = [ctypes.POINTER(ctypes.c_uint8)]
+        setattr(self, "gcapi_write", gcapi_write)
+
         self.gcdapi_load()
         time.sleep(1)
 
@@ -116,7 +121,7 @@ class Controller:
         else:
             print(f"{indent}{name}: {val}")
 
-    def dump(self, name, val):
+    def dump_struct(self, name, val):
         print()
         self.__dump(0, name, val)
         print()
@@ -169,6 +174,12 @@ class Controller:
         state = ControllerState()
         report = GCAPI_Report()
         self.gcapi_read(ctypes.byref(report))
+
+        output = (ctypes.c_uint8 * 36)()
+        for i in range(len(report.input)):
+            output[i] = report.input[i].value
+
+        self.gcapi_write(output)
 
         for i, input in enumerate(report.input):
             input_name = self.input_idx_to_name(i)
@@ -232,7 +243,7 @@ class ControllerGUI:
         def on_update():
             state = self.controller.read_state()
             self.update(state)
-            self.tk.after(16, on_update)
+            self.tk.after(8, on_update)
 
         on_update()
         self.tk.mainloop()
